@@ -62,7 +62,12 @@ export default function Auth() {
               navigate('/');
           },
           onFailure: (err) => {
-              setError(err.message || JSON.stringify(err));
+              if (err.code === 'UserNotConfirmedException') {
+                  setError('Account not verified. Please enter the verification code sent to your email.');
+                  setIsVerifying(true);
+              } else {
+                  setError(err.message || JSON.stringify(err));
+              }
           },
       });
     }
