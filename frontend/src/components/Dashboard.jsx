@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Clock, Brain, Code, Network } from 'lucide-react';
+import { Zap, Clock, Brain, Code, Network, Mic, Terminal, Swords, Flame, UserCircle, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -57,6 +57,13 @@ const TEST_CATEGORIES = [
   }
 ];
 
+const ADVANCED_MODES = [
+  { id: 'coding', title: 'Coding Arena', icon: Terminal, color: 'from-emerald-400 to-teal-600', glow: 'shadow-[0_0_20px_rgba(52,211,153,0.5)]', desc: 'Real-time multi-language sandbox' },
+  { id: 'speech', title: 'Communication Engine', icon: Mic, color: 'from-blue-400 to-indigo-600', glow: 'shadow-[0_0_20px_rgba(96,165,250,0.5)]', desc: 'AI-evaluated pronunciation tests' },
+  { id: 'survival', title: 'Survival Engine', icon: Flame, color: 'from-orange-400 to-red-600', glow: 'shadow-[0_0_20px_rgba(251,146,60,0.5)]', desc: '60s rapid-fire deathmatch' },
+  { id: 'battle', title: 'Battle Arena 1v1', icon: Swords, color: 'from-rose-400 to-pink-600', glow: 'shadow-[0_0_20px_rgba(251,113,133,0.5)]', desc: 'Real-time PvP coding races' }
+];
+
 export default function Dashboard() {
   const navigate = useNavigate();
 
@@ -71,11 +78,23 @@ export default function Dashboard() {
         initial="hidden"
         animate="show"
       >
-        <motion.header variants={itemVariants} className="mb-16">
-          <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white mb-4">
-            Prep <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-500">Arena</span>
-          </h1>
-          <p className="text-gray-400 text-lg max-w-2xl">Select a bounty to begin your elite technical trial.</p>
+        <motion.header variants={itemVariants} className="mb-16 flex justify-between items-start">
+          <div>
+            <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white mb-4">
+              Prep <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-500">Arena</span>
+            </h1>
+            <p className="text-gray-400 text-lg max-w-2xl">Select a bounty to begin your elite technical trial.</p>
+          </div>
+          <div className="flex space-x-4">
+            <button onClick={() => navigate('/auth')} className="flex items-center space-x-2 text-gray-400 hover:text-white bg-gray-900/50 px-4 py-2 rounded-xl border border-gray-800 transition shadow-lg">
+              <LogIn className="w-5 h-5" />
+              <span className="hidden md:inline font-bold">Authenticate</span>
+            </button>
+            <button onClick={() => navigate('/profile')} className="flex items-center space-x-2 text-gray-400 hover:text-white bg-gray-900/50 px-4 py-2 rounded-xl border border-gray-800 transition shadow-lg">
+              <UserCircle className="w-5 h-5" />
+              <span className="hidden md:inline font-bold">Profile</span>
+            </button>
+          </div>
         </motion.header>
 
         <div className="space-y-16">
@@ -130,6 +149,32 @@ export default function Dashboard() {
               </div>
             </motion.div>
           ))}
+
+          {/* ADVANCED MODES */}
+          <motion.div variants={itemVariants} className="space-y-6 pt-8 border-t border-gray-800">
+            <div className="flex items-center space-x-3 mb-8">
+              <Flame className="w-8 h-8 text-rose-500 drop-shadow-[0_0_10px_rgba(225,29,72,0.8)]" />
+              <h2 className="text-3xl font-bold text-white tracking-wide">Elite Modalities</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {ADVANCED_MODES.map((mode) => (
+                <motion.div 
+                  key={mode.id}
+                  whileHover={{ y: -5 }}
+                  onClick={() => navigate(`/${mode.id}`)}
+                  className="cursor-pointer group relative bg-gray-900/60 backdrop-blur-xl p-6 rounded-3xl border border-gray-800 hover:border-gray-600 transition-all duration-300 flex flex-col shadow-xl overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
+                  <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-br shadow-lg", mode.color, mode.glow)}>
+                    <mode.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{mode.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{mode.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         </div>
       </motion.div>
     </div>

@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { Home, CheckCircle, XCircle, Lightbulb } from 'lucide-react';
+import { Home, CheckCircle, XCircle, Lightbulb, MessageSquare } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip } from 'recharts';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import Chatbot from './Chatbot';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -67,6 +68,9 @@ export default function Results() {
       total: stats[key].total
     }));
   }, [result, questions]);
+
+  const [selectedQuestionContext, setSelectedQuestionContext] = useState(null);
+  const [chatOpenSignal, setChatOpenSignal] = useState(0);
 
   return (
     <div className="min-h-screen bg-gray-950 p-6 md:p-12 flex flex-col relative overflow-y-auto">
@@ -162,7 +166,19 @@ export default function Results() {
                     )}
                   </div>
                   <div className="flex-1">
-                    <div className="text-gray-400 text-sm font-mono tracking-wider mb-2">QUESTION {idx + 1}</div>
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="text-gray-400 text-sm font-mono tracking-wider">QUESTION {idx + 1}</div>
+                      <button 
+                        onClick={() => {
+                          setSelectedQuestionContext(originalQ);
+                          setChatOpenSignal(Date.now());
+                        }}
+                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-cyan-900/30 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500 hover:text-gray-950 transition-colors text-xs font-bold uppercase tracking-wider"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Ask Tutor</span>
+                      </button>
+                    </div>
                     <div className="text-lg text-gray-200 mb-6">{originalQ?.questionText || "Question text not available."}</div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -199,6 +215,7 @@ export default function Results() {
           })}
         </div>
       </div>
+      <Chatbot contextData={selectedQuestionContext} openSignal={chatOpenSignal} />
     </div>
   );
 }

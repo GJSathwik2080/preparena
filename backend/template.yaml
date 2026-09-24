@@ -7,18 +7,20 @@ Description: >
 
 Globals:
   Function:
-    Timeout: 10
+    Timeout: 15
     MemorySize: 256
     Environment:
       Variables:
         QUESTIONS_TABLE: !Ref QuestionsBank
         RESULTS_TABLE: !Ref UserResults
+        USER_STATS_TABLE: !Ref UserStats
+        BATTLE_CONNECTIONS_TABLE: !Ref BattleConnectionsTable
+        GEMINI_API_KEY: "{{resolve:ssm:GEMINI_API_KEY:1}}"
 
 Resources:
   AccenPrepUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: AccenPrepUserPool
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: false
       AutoVerifiedAttributes:
@@ -40,7 +42,6 @@ Resources:
   QuestionsBank:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: QuestionsBank
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: testId
@@ -56,7 +57,6 @@ Resources:
   UserResults:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: UserResults
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: userId
@@ -68,6 +68,17 @@ Resources:
           KeyType: HASH
         - AttributeName: timestamp
           KeyType: RANGE
+
+  UserStats:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
 
   AccenPrepApi:
     Type: AWS::Serverless::HttpApi
@@ -112,6 +123,8 @@ Resources:
             TableName: !Ref QuestionsBank
         - DynamoDBWritePolicy:
             TableName: !Ref UserResults
+        - DynamoDBWritePolicy:
+            TableName: !Ref UserStats
       Events:
         Api:
           Type: HttpApi
@@ -120,13 +133,195 @@ Resources:
             Method: post
             ApiId: !Ref AccenPrepApi
 
+  GetProfileStatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.getProfileStatsHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref UserStats
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /profile/{userId}
+            Method: get
+            ApiId: !Ref AccenPrepApi
+
+  EvaluateSpeechFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.evaluateSpeechHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /speech/evaluate
+            Method: post
+            ApiId: !Ref AccenPrepApi
+
+  BattleArenaWebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: BattleArenaWebSocketApi
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+
+  BattleConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+
+  WebSocketConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: websocket.connectHandler
+      Runtime: nodejs20.x
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref BattleConnectionsTable
+
+  WebSocketDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: websocket.disconnectHandler
+      Runtime: nodejs20.x
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref BattleConnectionsTable
+
+  WebSocketSendMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: websocket.sendMessageHandler
+      Runtime: nodejs20.x
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref BattleConnectionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - execute-api:ManageConnections
+              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BattleArenaWebSocketApi}/*"
+
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref BattleArenaWebSocketApi
+      RouteKey: $connect
+      AuthorizationType: NONE
+      Target: !Join [ "/", [ "integrations", !Ref ConnectIntegration ] ]
+
+  ConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref BattleArenaWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketConnectFunction.Arn}/invocations
+
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref BattleArenaWebSocketApi
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      Target: !Join [ "/", [ "integrations", !Ref DisconnectIntegration ] ]
+
+  DisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref BattleArenaWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketDisconnectFunction.Arn}/invocations
+
+  SendMessageRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref BattleArenaWebSocketApi
+      RouteKey: sendMessage
+      AuthorizationType: NONE
+      Target: !Join [ "/", [ "integrations", !Ref SendMessageIntegration ] ]
+
+  SendMessageIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref BattleArenaWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketSendMessageFunction.Arn}/invocations
+
+  WebSocketDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - ConnectRoute
+      - DisconnectRoute
+      - SendMessageRoute
+    Properties:
+      ApiId: !Ref BattleArenaWebSocketApi
+
+  WebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref BattleArenaWebSocketApi
+      DeploymentId: !Ref WebSocketDeployment
+      StageName: Prod
+
+  ConnectPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WebSocketConnectFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BattleArenaWebSocketApi}/*/*
+
+  DisconnectPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WebSocketDisconnectFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BattleArenaWebSocketApi}/*/*
+
+  SendMessagePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WebSocketSendMessageFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BattleArenaWebSocketApi}/*/*
+
 Outputs:
   ApiEndpoint:
-    Description: "API Gateway endpoint URL"
+    Description: "API Gateway HTTP endpoint URL"
     Value: !Sub "https://${AccenPrepApi}.execute-api.${AWS::Region}.amazonaws.com"
+  WebSocketEndpoint:
+    Description: "WebSocket API endpoint URL"
+    Value: !Sub "wss://${BattleArenaWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
   UserPoolId:
     Description: "Cognito User Pool ID"
     Value: !Ref AccenPrepUserPool
   UserPoolClientId:
     Description: "Cognito User Pool Client ID"
     Value: !Ref AccenPrepUserPoolClient
+  QuestionsTableName:
+    Description: "Generated DynamoDB Questions Table Name"
+    Value: !Ref QuestionsBank
+  UserStatsTableName:
+    Description: "Generated DynamoDB User Stats Table Name"
+    Value: !Ref UserStats

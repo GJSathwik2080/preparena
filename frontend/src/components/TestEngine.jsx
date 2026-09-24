@@ -6,6 +6,7 @@ import { awsmobile } from '../aws-exports';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import Chatbot from './Chatbot';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -326,6 +327,8 @@ export default function TestEngine() {
           )}
         </AnimatePresence>
       </div>
+      
+      <Chatbot contextData={currentQuestion} />
     </div>
   );
 }

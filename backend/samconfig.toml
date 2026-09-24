@@ -1,9 +1,9 @@
 version = 0.1
 
 [default.deploy.parameters]
-stack_name = "accenprep-portal"
+stack_name = "prep-arena-stack"
 resolve_s3 = true
-s3_prefix = "accenprep-portal"
+s3_prefix = "prep-arena-stack"
 region = "ap-south-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"

@@ -7,7 +7,7 @@ Description: 'accenprep-portal
   '
 Globals:
   Function:
-    Timeout: 10
+    Timeout: 15
     MemorySize: 256
     Environment:
       Variables:
@@ -15,11 +15,14 @@ Globals:
           Ref: QuestionsBank
         RESULTS_TABLE:
           Ref: UserResults
+        USER_STATS_TABLE:
+          Ref: UserStats
+        BATTLE_CONNECTIONS_TABLE:
+          Ref: BattleConnectionsTable
 Resources:
   AccenPrepUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: AccenPrepUserPool
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: false
       AutoVerifiedAttributes:
@@ -40,7 +43,6 @@ Resources:
   QuestionsBank:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: QuestionsBank
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
       - AttributeName: testId
@@ -55,7 +57,6 @@ Resources:
   UserResults:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: UserResults
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
       - AttributeName: userId
@@ -67,6 +68,16 @@ Resources:
         KeyType: HASH
       - AttributeName: timestamp
         KeyType: RANGE
+  UserStats:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: userId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: userId
+        KeyType: HASH
   AccenPrepApi:
     Type: AWS::Serverless::HttpApi
     Properties:
@@ -114,6 +125,9 @@ Resources:
       - DynamoDBWritePolicy:
           TableName:
             Ref: UserResults
+      - DynamoDBWritePolicy:
+          TableName:
+            Ref: UserStats
       Events:
         Api:
           Type: HttpApi
@@ -124,11 +138,113 @@ Resources:
               Ref: AccenPrepApi
     Metadata:
       SamResourceId: SubmitResultFunction
+  GetProfileStatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: GetProfileStatsFunction
+      Handler: app.getProfileStatsHandler
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: UserStats
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /profile/{userId}
+            Method: get
+            ApiId:
+              Ref: AccenPrepApi
+    Metadata:
+      SamResourceId: GetProfileStatsFunction
+  EvaluateSpeechFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: EvaluateSpeechFunction
+      Handler: app.evaluateSpeechHandler
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /speech/evaluate
+            Method: post
+            ApiId:
+              Ref: AccenPrepApi
+    Metadata:
+      SamResourceId: EvaluateSpeechFunction
+  BattleArenaWebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: BattleArenaWebSocketApi
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.action
+  BattleConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: connectionId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: connectionId
+        KeyType: HASH
+  WebSocketConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: WebSocketConnectFunction
+      Handler: websocket.connectHandler
+      Runtime: nodejs20.x
+      Policies:
+      - DynamoDBWritePolicy:
+          TableName:
+            Ref: BattleConnectionsTable
+    Metadata:
+      SamResourceId: WebSocketConnectFunction
+  WebSocketDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: WebSocketDisconnectFunction
+      Handler: websocket.disconnectHandler
+      Runtime: nodejs20.x
+      Policies:
+      - DynamoDBWritePolicy:
+          TableName:
+            Ref: BattleConnectionsTable
+    Metadata:
+      SamResourceId: WebSocketDisconnectFunction
+  WebSocketSendMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: WebSocketSendMessageFunction
+      Handler: websocket.sendMessageHandler
+      Runtime: nodejs20.x
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: BattleConnectionsTable
+      - Statement:
+        - Effect: Allow
+          Action:
+          - execute-api:ManageConnections
+          Resource:
+            Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BattleArenaWebSocketApi}/*
+    Metadata:
+      SamResourceId: WebSocketSendMessageFunction
 Outputs:
   ApiEndpoint:
-    Description: API Gateway endpoint URL
+    Description: API Gateway HTTP endpoint URL
     Value:
       Fn::Sub: https://${AccenPrepApi}.execute-api.${AWS::Region}.amazonaws.com
+  WebSocketEndpoint:
+    Description: WebSocket API endpoint URL
+    Value:
+      Fn::Sub: wss://${BattleArenaWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
   UserPoolId:
     Description: Cognito User Pool ID
     Value:
@@ -137,3 +253,11 @@ Outputs:
     Description: Cognito User Pool Client ID
     Value:
       Ref: AccenPrepUserPoolClient
+  QuestionsTableName:
+    Description: Generated DynamoDB Questions Table Name
+    Value:
+      Ref: QuestionsBank
+  UserStatsTableName:
+    Description: Generated DynamoDB User Stats Table Name
+    Value:
+      Ref: UserStats
