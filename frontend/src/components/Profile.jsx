@@ -38,7 +38,9 @@ export default function Profile() {
   }
 
   // Radar Data Mapping
-  const rawCats = profileData?.categories || { 'DSA': 50, 'Logical': 50, 'DBMS': 50 };
+  const rawCats = profileData?.categories && Object.keys(profileData.categories).length > 0 
+    ? profileData.categories 
+    : { 'DSA': 50, 'Logical': 50, 'DBMS': 50, 'System Design': 50 };
   const radarData = Object.keys(rawCats).map(key => ({
     subject: key, A: rawCats[key], fullMark: 100
   }));
@@ -71,12 +73,14 @@ export default function Profile() {
 
         <div className="flex items-end justify-between mb-12 border-b border-gray-800 pb-8">
           <div className="flex items-center space-x-6">
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-400 to-violet-600 flex items-center justify-center text-4xl font-black shadow-[0_0_30px_rgba(34,211,238,0.3)]">
-              GS
+            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-400 to-violet-600 flex items-center justify-center text-4xl font-black shadow-[0_0_30px_rgba(34,211,238,0.3)] uppercase">
+              {localStorage.getItem('userId')?.substring(0, 2) || 'GS'}
             </div>
             <div>
-              <h1 className="text-4xl font-extrabold text-white mb-1">GJ Sathwik</h1>
-              <p className="text-gray-400 font-mono">Principal Candidate Rank</p>
+              <h1 className="text-4xl font-extrabold text-white mb-1">
+                {localStorage.getItem('userId')?.split('@')[0] || 'GJ Sathwik'}
+              </h1>
+              <p className="text-gray-400 font-mono text-sm">{localStorage.getItem('userId') || 'Candidate'}</p>
             </div>
           </div>
           
@@ -105,8 +109,8 @@ export default function Profile() {
               <Target className="w-5 h-5 text-cyan-400" />
               <span>Assessment Consistency</span>
             </h2>
-            <div className="flex flex-col">
-              <div className="flex gap-1 mb-2">
+            <div className="flex flex-col w-full overflow-x-auto pb-4 custom-scrollbar">
+              <div className="flex gap-1 mb-2 min-w-max">
                 {/* 52 columns, 7 rows layout */}
                 {Array.from({ length: 52 }).map((_, colIndex) => (
                   <div key={colIndex} className="flex flex-col gap-1">
