@@ -90,6 +90,12 @@ export default function Auth() {
           {isLogin ? 'Enter your credentials to access the Arena.' : 'Join the elite ranks of Prep Arena.'}
         </p>
 
+        {error && (
+          <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/50 rounded-xl text-rose-400 text-sm font-semibold text-center">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
           <AnimatePresence>
             {!isLogin && (
@@ -104,6 +110,8 @@ export default function Auth() {
                   <input 
                     type="text" 
                     placeholder="Full Name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="w-full bg-gray-950/50 border border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
                   />
                 </div>
@@ -117,6 +125,8 @@ export default function Auth() {
               type="email" 
               required
               placeholder="Email Address"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
               className="w-full bg-gray-950/50 border border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
             />
           </div>
@@ -127,6 +137,8 @@ export default function Auth() {
               type="password"
               required
               placeholder="Password"
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
               className="w-full bg-gray-950/50 border border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
             />
           </div>
