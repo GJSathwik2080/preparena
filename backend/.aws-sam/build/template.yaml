@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'accenprep-portal
+
+  SAM Template for AccenPrep Mock Assessment Portal
+
+  '
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 256
+    Environment:
+      Variables:
+        QUESTIONS_TABLE:
+          Ref: QuestionsBank
+        RESULTS_TABLE:
+          Ref: UserResults
+Resources:
+  AccenPrepUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: AccenPrepUserPool
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      AutoVerifiedAttributes:
+      - email
+      UsernameAttributes:
+      - email
+  AccenPrepUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: AccenPrepClient
+      UserPoolId:
+        Ref: AccenPrepUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+      - ALLOW_USER_SRP_AUTH
+      - ALLOW_REFRESH_TOKEN_AUTH
+      - ALLOW_USER_PASSWORD_AUTH
+  QuestionsBank:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: QuestionsBank
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: testId
+        AttributeType: S
+      - AttributeName: questionId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: testId
+        KeyType: HASH
+      - AttributeName: questionId
+        KeyType: RANGE
+  UserResults:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: UserResults
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: userId
+        AttributeType: S
+      - AttributeName: timestamp
+        AttributeType: S
+      KeySchema:
+      - AttributeName: userId
+        KeyType: HASH
+      - AttributeName: timestamp
+        KeyType: RANGE
+  AccenPrepApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+        - '*'
+        AllowHeaders:
+        - '*'
+        AllowMethods:
+        - '*'
+  GetQuestionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: GetQuestionsFunction
+      Handler: app.getQuestionsHandler
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: QuestionsBank
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /tests/{testId}
+            Method: get
+            ApiId:
+              Ref: AccenPrepApi
+    Metadata:
+      SamResourceId: GetQuestionsFunction
+  SubmitResultFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: SubmitResultFunction
+      Handler: app.submitResultHandler
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: QuestionsBank
+      - DynamoDBWritePolicy:
+          TableName:
+            Ref: UserResults
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /tests/submit
+            Method: post
+            ApiId:
+              Ref: AccenPrepApi
+    Metadata:
+      SamResourceId: SubmitResultFunction
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value:
+      Fn::Sub: https://${AccenPrepApi}.execute-api.${AWS::Region}.amazonaws.com
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value:
+      Ref: AccenPrepUserPool
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value:
+      Ref: AccenPrepUserPoolClient
