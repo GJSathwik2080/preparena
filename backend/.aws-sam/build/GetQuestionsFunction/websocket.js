@@ -5,7 +5,7 @@ const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require("@aws
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
-const TABLE_NAME = process.env.TABLE_NAME || "BattleConnections";
+const TABLE_NAME = process.env.BATTLE_CONNECTIONS_TABLE || "BattleConnections";
 
 exports.connectHandler = async (event) => {
     try {

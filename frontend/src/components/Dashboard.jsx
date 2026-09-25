@@ -1,9 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Clock, Brain, Code, Network, Mic, Terminal, Swords, Flame, UserCircle, LogIn } from 'lucide-react';
+import { Zap, Clock, Brain, Code, Network, Mic, Terminal, Swords, Flame, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import Header from './Header';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -14,169 +15,187 @@ const containerVariants = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1
+      staggerChildren: 0.05
     }
   }
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1.0] } }
 };
 
 const TEST_CATEGORIES = [
   {
     title: "Cognitive Ability",
+    categoryKey: "cognitive",
     icon: Brain,
-    color: "from-fuchsia-500 to-pink-600",
-    glow: "shadow-[0_0_20px_rgba(217,70,239,0.5)]",
+    badgeColor: "bg-zinc-900 text-zinc-300 border-zinc-800",
     tests: [
-      { id: "cognitive-mock-1", title: "Cognitive Assessment - Alpha", time: "50 min", questions: 30 },
-      { id: "cognitive-mock-2", title: "Cognitive Assessment - Beta", time: "50 min", questions: 30 },
+      { id: "cognitive-mock-1", title: "Cognitive Assessment - Alpha", time: "50 min", questions: 30, desc: "Verbal syntax, sentence structure & critical logic" },
+      { id: "cognitive-mock-2", title: "Cognitive Assessment - Beta", time: "50 min", questions: 30, desc: "Statement assumptions, abstract series & syllogisms" },
+      { id: "cognitive-mock-3", title: "Cognitive Assessment - Gamma", time: "50 min", questions: 30, desc: "Number puzzles, pattern deduction & analogies" },
+      { id: "cognitive-mock-4", title: "Cognitive Assessment - Delta", time: "50 min", questions: 30, desc: "Data sufficiency, direction sense & seating grids" }
     ]
   },
   {
     title: "Technical Ability",
+    categoryKey: "technical",
     icon: Network,
-    color: "from-cyan-400 to-blue-600",
-    glow: "shadow-[0_0_20px_rgba(34,211,238,0.5)]",
+    badgeColor: "bg-zinc-900 text-zinc-300 border-zinc-800",
     tests: [
-      { id: "technical-mock-1", title: "Technical Fundamentals - I", time: "50 min", questions: 30 },
-      { id: "technical-mock-2", title: "Technical Fundamentals - II", time: "50 min", questions: 30 },
+      { id: "technical-mock-1", title: "Technical Fundamentals - I", time: "50 min", questions: 30, desc: "Bitwise execution, nested loops & recursion trees" },
+      { id: "technical-mock-2", title: "Technical Fundamentals - II", time: "50 min", questions: 30, desc: "AWS cloud architecture, VPC subnets & TCP/IP" },
+      { id: "technical-mock-3", title: "Technical Fundamentals - III", time: "50 min", questions: 30, desc: "OS paging, deadlocks, SQL ACID & mutex locks" },
+      { id: "technical-mock-4", title: "Cloud, Security & Architecture", time: "50 min", questions: 30, desc: "Authentication headers, IMDSv2 & security rules" }
     ]
   },
   {
     title: "Coding Ability",
+    categoryKey: "coding",
     icon: Code,
-    color: "from-violet-500 to-purple-700",
-    glow: "shadow-[0_0_20px_rgba(139,92,246,0.5)]",
+    badgeColor: "bg-zinc-900 text-zinc-300 border-zinc-800",
     tests: [
-      { id: "coding-mock-1", title: "Data Structures & Algos - I", time: "45 min", questions: 20 },
-      { id: "coding-mock-2", title: "Data Structures & Algos - II", time: "45 min", questions: 20 },
+      { id: "coding-mock-1", title: "Data Structures & Algos - I", time: "45 min", questions: 20, desc: "Arrays, hash maps & sliding window optimization" },
+      { id: "coding-mock-2", title: "Data Structures & Algos - II", time: "45 min", questions: 20, desc: "Stacks, queues, linked lists & two pointers" },
+      { id: "coding-mock-3", title: "Data Structures & Algos - III", time: "45 min", questions: 20, desc: "Binary search trees, heaps & graph BFS/DFS" },
+      { id: "coding-mock-4", title: "Advanced Graph & System DSA", time: "45 min", questions: 20, desc: "Dynamic programming memoization & greedy paths" }
     ]
   }
 ];
 
 const ADVANCED_MODES = [
-  { id: 'coding', title: 'Coding Arena', icon: Terminal, color: 'from-emerald-400 to-teal-600', glow: 'shadow-[0_0_20px_rgba(52,211,153,0.5)]', desc: 'Real-time multi-language sandbox' },
-  { id: 'speech', title: 'Communication Engine', icon: Mic, color: 'from-blue-400 to-indigo-600', glow: 'shadow-[0_0_20px_rgba(96,165,250,0.5)]', desc: 'AI-evaluated pronunciation tests' },
-  { id: 'survival', title: 'Survival Engine', icon: Flame, color: 'from-orange-400 to-red-600', glow: 'shadow-[0_0_20px_rgba(251,146,60,0.5)]', desc: '60s rapid-fire deathmatch' },
-  { id: 'battle', title: 'Battle Arena 1v1', icon: Swords, color: 'from-rose-400 to-pink-600', glow: 'shadow-[0_0_20px_rgba(251,113,133,0.5)]', desc: 'Real-time PvP coding races' }
+  { 
+    id: 'coding', 
+    title: 'Coding Arena', 
+    icon: Terminal, 
+    desc: 'Real-time multi-language sandbox with strict test validation' 
+  },
+  { 
+    id: 'speech', 
+    title: 'Communication Engine', 
+    icon: Mic, 
+    desc: 'Audio playback & Gemini speech evaluation with transcript' 
+  },
+  { 
+    id: 'survival', 
+    title: 'Survival Engine', 
+    icon: Flame, 
+    desc: '60s rapid-fire sudden death with 1-mistake elimination' 
+  },
+  { 
+    id: 'battle', 
+    title: 'Battle Arena 1v1', 
+    icon: Swords, 
+    desc: 'Real-time PvP racing over AWS WebSocket gateway' 
+  }
 ];
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gray-950 p-8 flex flex-col relative overflow-y-auto overflow-x-hidden">
-      <div className="absolute top-0 left-[-10%] w-[50%] h-[40%] bg-violet-600/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 right-[-10%] w-[50%] h-[40%] bg-cyan-600/10 blur-[120px] rounded-full pointer-events-none" />
+    <div className="flex-1 flex flex-col w-full">
+      
+      {/* Refactored Luxury Top Navigation Header */}
+      <Header />
 
-      <motion.div 
-        className="max-w-6xl w-full mx-auto z-10 py-12"
+      <motion.main 
+        className="max-w-7xl w-full mx-auto px-6 py-16 md:py-24 flex-1 flex flex-col"
         variants={containerVariants}
         initial="hidden"
         animate="show"
       >
-        <motion.header variants={itemVariants} className="mb-16 flex justify-between items-start">
-          <div>
-            <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white mb-4">
-              Prep <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-500">Arena</span>
-            </h1>
-            <p className="text-gray-400 text-lg max-w-2xl">Select a bounty to begin your elite technical trial.</p>
+        {/* Section 1: Elite Modalities */}
+        <motion.section variants={itemVariants} className="mb-14">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center space-x-2">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">Elite Modalities</h2>
+            </div>
+            <span className="text-sm font-medium text-zinc-500">Interactive environments</span>
           </div>
-          <div className="flex space-x-4">
-            <button onClick={() => navigate('/auth')} className="flex items-center space-x-2 text-gray-400 hover:text-white bg-gray-900/50 px-4 py-2 rounded-xl border border-gray-800 transition shadow-lg">
-              <LogIn className="w-5 h-5" />
-              <span className="hidden md:inline font-bold">Authenticate</span>
-            </button>
-            <button onClick={() => navigate('/profile')} className="flex items-center space-x-2 text-gray-400 hover:text-white bg-gray-900/50 px-4 py-2 rounded-xl border border-gray-800 transition shadow-lg">
-              <UserCircle className="w-5 h-5" />
-              <span className="hidden md:inline font-bold">Profile</span>
-            </button>
-          </div>
-        </motion.header>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {ADVANCED_MODES.map((mode) => (
+              <motion.div 
+                key={mode.id}
+                whileHover={{ y: -4, scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate(`/${mode.id}`)}
+                className="cursor-pointer group bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-sm hover:shadow-lg dark:shadow-none transition-all duration-300 ease-out flex flex-col justify-between"
+              >
+                <div>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4 bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/50 text-zinc-600 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white group-hover:border-zinc-300 dark:group-hover:border-zinc-600 transition-colors">
+                    <mode.icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-2 tracking-tight group-hover:text-zinc-700 dark:group-hover:text-zinc-200 transition-colors">{mode.title}</h3>
+                  <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium leading-relaxed">{mode.desc}</p>
+                </div>
+
+                <div className="mt-5 pt-3 border-t border-zinc-200 dark:border-zinc-800/60 flex items-center justify-between text-xs font-medium text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200 transition-colors">
+                  <span>Enter</span>
+                  <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* Section 2: Assessment Categories (All 12 Tests) */}
         <div className="space-y-16">
           {TEST_CATEGORIES.map((category, idx) => (
-            <motion.div key={idx} variants={itemVariants} className="space-y-6">
-              <div className="flex items-center space-x-3">
-                <category.icon className={cn("w-8 h-8 text-transparent bg-clip-text bg-gradient-to-br", category.color)} />
-                <h2 className="text-3xl font-bold text-white tracking-wide">{category.title}</h2>
+            <motion.section key={idx} variants={itemVariants} className="space-y-4">
+              
+              <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/60 pb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 shadow-sm">
+                    <category.icon className="w-4 h-4" />
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">{category.title}</h2>
+                </div>
+                <span className="text-sm font-medium text-zinc-500">4 Modules</span>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {category.tests.map(test => (
                   <motion.div 
                     key={test.id}
-                    whileHover={{ y: -5 }}
-                    className="group relative bg-gray-900/60 backdrop-blur-xl p-8 rounded-3xl border border-gray-800 hover:border-gray-600 transition-all duration-300 flex flex-col shadow-xl overflow-hidden"
+                    whileHover={{ y: -4, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group bg-white dark:bg-zinc-900/40 hover:bg-zinc-50 dark:hover:bg-zinc-900/80 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-sm hover:shadow-lg dark:shadow-none transition-all duration-300 ease-out flex flex-col justify-between"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    
-                    <div className="relative z-10 flex flex-col h-full">
-                      <div className="flex items-start justify-between mb-6">
-                        <div className="bg-gray-800/80 px-4 py-2 rounded-full border border-gray-700">
-                          <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{test.id}</span>
-                        </div>
-                        <div className="flex space-x-2">
-                          <div className="flex items-center space-x-1 text-gray-400 bg-gray-800/80 px-3 py-1 rounded-full text-sm font-medium">
-                            <Clock className="w-4 h-4" /><span>{test.time}</span>
-                          </div>
-                          <div className="flex items-center space-x-1 text-gray-400 bg-gray-800/80 px-3 py-1 rounded-full text-sm font-medium">
-                            <Zap className="w-4 h-4" /><span>{test.questions} Q</span>
-                          </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[10px] font-mono font-medium uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400">
+                          {test.id}
+                        </span>
+                        <div className="flex items-center space-x-2 text-xs text-zinc-500 font-mono">
+                          <span className="flex items-center space-x-1"><Clock className="w-3 h-3" /><span>{test.time}</span></span>
+                          <span>•</span>
+                          <span className="flex items-center space-x-1"><Zap className="w-3 h-3" /><span>{test.questions}Q</span></span>
                         </div>
                       </div>
                       
-                      <h3 className="text-2xl font-bold text-white mb-8">{test.title}</h3>
-                      
-                      <motion.button 
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => navigate(`/test/${test.id}`)}
-                        className={cn(
-                          "w-full text-white font-bold py-4 px-6 rounded-2xl transition-all relative overflow-hidden bg-gradient-to-r hover:opacity-90",
-                          category.color,
-                          category.glow
-                        )}
-                      >
-                        Start Assessment
-                      </motion.button>
+                      <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-2 tracking-tight group-hover:text-zinc-700 dark:group-hover:text-zinc-200 transition-colors">{test.title}</h3>
+                      <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 leading-relaxed mb-6">
+                        {test.desc}
+                      </p>
                     </div>
+
+                    <button 
+                      onClick={() => navigate(`/test/${test.id}`)}
+                      className="w-full flex justify-center items-center bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 transition-all duration-200 ease-out hover:bg-zinc-800 dark:hover:bg-zinc-200 hover:-translate-y-[1px] hover:shadow-md active:scale-[0.98] font-medium text-sm tracking-wide py-2.5 px-4 rounded-xl cursor-pointer"
+                    >
+                      Start Assessment
+                    </button>
                   </motion.div>
                 ))}
               </div>
-            </motion.div>
+            </motion.section>
           ))}
-
-          {/* ADVANCED MODES */}
-          <motion.div variants={itemVariants} className="space-y-6 pt-8 border-t border-gray-800">
-            <div className="flex items-center space-x-3 mb-8">
-              <Flame className="w-8 h-8 text-rose-500 drop-shadow-[0_0_10px_rgba(225,29,72,0.8)]" />
-              <h2 className="text-3xl font-bold text-white tracking-wide">Elite Modalities</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {ADVANCED_MODES.map((mode) => (
-                <motion.div 
-                  key={mode.id}
-                  whileHover={{ y: -5 }}
-                  onClick={() => navigate(`/${mode.id}`)}
-                  className="cursor-pointer group relative bg-gray-900/60 backdrop-blur-xl p-6 rounded-3xl border border-gray-800 hover:border-gray-600 transition-all duration-300 flex flex-col shadow-xl overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  
-                  <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-br shadow-lg", mode.color, mode.glow)}>
-                    <mode.icon className="w-7 h-7 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{mode.title}</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">{mode.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
         </div>
-      </motion.div>
+
+      </motion.main>
     </div>
   );
 }

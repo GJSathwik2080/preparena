@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import Dashboard from './components/Dashboard';
 import TestEngine from './components/TestEngine';
 import Results from './components/Results';
@@ -12,8 +13,9 @@ import BattleArena from './components/BattleArena';
 
 function App() {
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-blue-500/30">
+    <ThemeProvider>
+      <BrowserRouter>
+        <div className="min-h-screen bg-white text-zinc-900 dark:bg-[#09090b] dark:text-zinc-50 font-sans selection:bg-zinc-800/20 dark:selection:bg-white/20 transition-colors duration-300">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/test/:testId" element={<TestEngine />} />
@@ -27,6 +29,7 @@ function App() {
         </Routes>
       </div>
     </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

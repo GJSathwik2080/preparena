@@ -6,10 +6,20 @@ from google import genai
 from google.genai import types
 from uuid import uuid4
 
-# Setup Gemini Client
+# Load environment variable with fallback from frontend/.env if needed
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
-    raise ValueError("Please set the GEMINI_API_KEY environment variable.")
+    env_path = os.path.join(os.path.dirname(__file__), "..", "frontend", ".env")
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            for line in f:
+                if line.startswith("VITE_GEMINI_API_KEY="):
+                    api_key = line.strip().split("=", 1)[1]
+                    break
+
+if not api_key:
+    raise ValueError("Please set the GEMINI_API_KEY environment variable or define VITE_GEMINI_API_KEY in frontend/.env.")
+
 client = genai.Client(api_key=api_key)
 
 # Setup DynamoDB
@@ -19,91 +29,97 @@ table = dynamodb.Table('prep-arena-stack-QuestionsBank-1XZINSUCSZNIZ')
 TEST_CONFIGS = [
     {
         "testId": "cognitive-mock-1",
-        "topic": "Cognitive Ability: English Verbal Ability (Reading Comprehension, Sentence Correction for subject-verb agreement and tenses, Synonyms/Antonyms), Logical Reasoning, Critical Reasoning, and Abstract Reasoning.",
+        "topic": "Cognitive Ability: Verbal Ability (Sentence Correction for subject-verb agreement, tenses), Reading Comprehension, Synonyms/Antonyms, and Logical Deductions.",
         "num_questions": 30
     },
     {
         "testId": "cognitive-mock-2",
-        "topic": "Cognitive Ability: English Verbal Ability (Reading Comprehension, Sentence Correction for subject-verb agreement and tenses, Synonyms/Antonyms), Logical Reasoning, Critical Reasoning, and Abstract Reasoning.",
+        "topic": "Cognitive Ability: Critical Reasoning, Statement & Assumptions, Syllogisms, and Direction Sense.",
         "num_questions": 30
     },
     {
         "testId": "cognitive-mock-3",
-        "topic": "Cognitive Ability: English Verbal Ability (Reading Comprehension, Sentence Correction for subject-verb agreement and tenses, Synonyms/Antonyms), Logical Reasoning, Critical Reasoning, and Abstract Reasoning.",
+        "topic": "Cognitive Ability: Abstract Reasoning, Number & Letter Series, Pattern Analysis, and Blood Relations.",
         "num_questions": 30
     },
     {
         "testId": "cognitive-mock-4",
-        "topic": "Cognitive Ability: English Verbal Ability (Reading Comprehension, Sentence Correction for subject-verb agreement and tenses, Synonyms/Antonyms), Logical Reasoning, Critical Reasoning, and Abstract Reasoning.",
+        "topic": "Cognitive Ability: Data Sufficiency, Analytical Puzzles, Analogies, and Seating Arrangement.",
         "num_questions": 30
     },
     {
         "testId": "technical-mock-1",
-        "topic": "Technical Ability: MS Office, Pseudocode (bitwise operators, nested loops, recursion), and Networking, Security & Cloud.",
+        "topic": "Technical Ability: Pseudocode execution (bitwise operators `&`, `|`, `^`, nested loops, and recursion trees).",
         "num_questions": 30
     },
     {
         "testId": "technical-mock-2",
-        "topic": "Technical Ability: MS Office, Pseudocode (bitwise operators, nested loops, recursion), and Networking, Security & Cloud.",
+        "topic": "Technical Ability: Cloud Computing (AWS core services, IAM, serverless, VPC networking) and Network Protocols (TCP/IP, DNS, HTTPS, Subnetting).",
         "num_questions": 30
     },
     {
         "testId": "technical-mock-3",
-        "topic": "Technical Ability: MS Office, Pseudocode (bitwise operators, nested loops, recursion), and Networking, Security & Cloud.",
+        "topic": "Technical Ability: Operating Systems (Process Scheduling, Deadlocks, Virtual Memory Paging, Mutex/Semaphores) and DBMS (SQL queries, indexing, ACID transactions).",
         "num_questions": 30
     },
     {
         "testId": "technical-mock-4",
-        "topic": "Technical Ability: MS Office, Pseudocode (bitwise operators, nested loops, recursion), and Networking, Security & Cloud.",
+        "topic": "Technical Ability: MS Office/Excel formulas, Cybersecurity fundamentals (firewalls, encryption, authentication headers), and Web architecture.",
         "num_questions": 30
     },
     {
         "testId": "coding-mock-1",
-        "topic": "Coding Ability: Data Structures and Algorithms (presented as advanced code-snippet MCQs).",
+        "topic": "Coding Ability: Data Structures (Arrays, Strings, Hash Maps, Sliding Window techniques).",
         "num_questions": 20
     },
     {
         "testId": "coding-mock-2",
-        "topic": "Coding Ability: Data Structures and Algorithms (presented as advanced code-snippet MCQs).",
+        "topic": "Coding Ability: Stacks, Queues, Linked Lists, and Two-Pointer Algorithms.",
         "num_questions": 20
     },
     {
         "testId": "coding-mock-3",
-        "topic": "Coding Ability: Data Structures and Algorithms (presented as advanced code-snippet MCQs).",
+        "topic": "Coding Ability: Binary Trees, Binary Search, Heaps/Priority Queues, and Graph Traversal (BFS/DFS).",
         "num_questions": 20
     },
     {
         "testId": "coding-mock-4",
-        "topic": "Coding Ability: Data Structures and Algorithms (presented as advanced code-snippet MCQs).",
+        "topic": "Coding Ability: Dynamic Programming (Memoization, Tabulation), Greedy Algorithms, and Complexity Analysis.",
         "num_questions": 20
     }
 ]
 
 def generate_batch(config, batch_size):
     prompt = f"""
-    Act as a Principal Engineer designing a technical screening exam for Computer Science engineering students.
-    Generate {batch_size} complex, scenario-based architecture, debugging, and system design problems.
-    ABSOLUTELY FORBID basic/direct trivia. Do not ask simple definitions. 
-    Instead, ask applied questions (e.g., "A distributed database is experiencing circular wait during transactions. Given the following logs, which service is failing?").
+    Act as a Lead Technical Assessment Architect designing a standard competitive screening exam for final-year engineering graduates.
+    Generate {batch_size} moderately challenging, high-quality multiple choice questions.
+    
+    Difficulty Guidelines:
+    - Questions must be clear, concise, and focused on core principles and problem solving.
+    - Avoid excessively long essay-length scenarios; keep questions readable within 60 to 90 seconds.
+    - Test understanding of applied concepts (e.g., predicting code output, time complexity, network error resolution, query logic).
+    
+    CRITICAL FORMATTING RULES:
+    - Any code snippet, pseudocode, algorithm, or terminal command embedded in `questionText` or `options` MUST be wrapped in standard Markdown code blocks with appropriate language tags (e.g., ```python ... ```, ```cpp ... ```, ```sql ... ```, or `inline code`).
+    - Every question MUST have exactly 4 options.
+    - `correctAnswer` must match one of the 4 options verbatim.
+    - `explanation` must be a crisp 2-4 sentence explanation of why the correct answer is right and why alternatives are wrong.
     
     Topic focus: {config['topic']}
     
-    Every question MUST be 100% accurate, have a definitively correct answer, and include a deeply analytical `explanation` field that explores the tradeoffs, edge cases, and architectural reasoning behind the answer. No hallucinations.
-    
-    You must output STRICTLY a JSON array of objects.
-    Each object must have the following keys:
-    - testId: Always "{config['testId']}"
-    - category: The topic category
-    - questionText: The text of the question
-    - options: An array of exactly 4 strings representing the possible answers
-    - correctAnswer: The correct string exactly matching one of the options
-    - explanation: A detailed, logically sound explanation of why the answer is correct
+    Output strictly a valid JSON array of objects with the following keys:
+    - "testId": Always "{config['testId']}"
+    - "category": Short descriptive category name (e.g., "Pseudocode: Bitwise", "Cloud: VPC", "DSA: Arrays")
+    - "questionText": The formatted question text with markdown code blocks where applicable
+    - "options": An array of exactly 4 strings
+    - "correctAnswer": The correct string matching one option exactly
+    - "explanation": Crisp explanation of the correct logic
     """
     
     for attempt in range(5):
         try:
             response = client.models.generate_content(
-                model='gemini-3.5-flash-lite',
+                model='gemini-3.5-flash',
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
@@ -111,7 +127,7 @@ def generate_batch(config, batch_size):
                 )
             )
             
-            text = response.text
+            text = response.text.strip()
             if text.startswith("```json"):
                 text = text[7:]
             if text.endswith("```"):
@@ -133,7 +149,7 @@ def seed_db():
     
     with table.batch_writer() as batch:
         for config in TEST_CONFIGS:
-            print(f"\n--- Generating {config['num_questions']} total questions for {config['testId']} ---")
+            print(f"\n--- Generating {config['num_questions']} questions for {config['testId']} ---")
             remaining = config['num_questions']
             
             while remaining > 0:
@@ -144,14 +160,14 @@ def seed_db():
                 
                 if questions:
                     for q in questions:
-                        # FORCE a unique ID for every single question to prevent DynamoDB collisions
+                        # Ensure globally unique question ID
                         q['questionId'] = str(uuid4())
                         batch.put_item(Item=q)
                     
                     inserted_count = len(questions)
                     total_questions += inserted_count
                     remaining -= inserted_count
-                    print(f"  -> Successfully injected {inserted_count} questions into DynamoDB. ({remaining} left for this test)")
+                    print(f"  -> Successfully injected {inserted_count} questions into DynamoDB. ({remaining} left)")
                 else:
                     print(f"  -> Skipping remaining questions for {config['testId']} due to persistent errors.")
                     break

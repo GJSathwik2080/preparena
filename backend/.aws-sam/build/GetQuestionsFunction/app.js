@@ -185,7 +185,7 @@ exports.evaluateSpeechHandler = async (event) => {
         }
 
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const prompt = \`You are an elite speech evaluator. Evaluate the following spoken text for Pronunciation (clarity), Fluency (flow), and Vocabulary (professionalism). Output strictly a JSON object with 'pronunciation', 'fluency', 'vocabulary', 'overall' (all out of 100), and a short 'feedback' string. Text: "\${text}"\`;
+        const prompt = `You are an elite speech evaluator. Evaluate the following spoken text for Pronunciation (clarity), Fluency (flow), and Vocabulary (professionalism). Output strictly a JSON object with 'pronunciation', 'fluency', 'vocabulary', 'overall' (all out of 100), and a short 'feedback' string. Text: "${text}"`;
         
         const response = await ai.models.generateContent({
             model: 'gemini-3.5-flash-lite',

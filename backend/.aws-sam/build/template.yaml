@@ -19,6 +19,7 @@ Globals:
           Ref: UserStats
         BATTLE_CONNECTIONS_TABLE:
           Ref: BattleConnectionsTable
+        GEMINI_API_KEY: '{{resolve:ssm:GEMINI_API_KEY:1}}'
 Resources:
   AccenPrepUserPool:
     Type: AWS::Cognito::UserPool
@@ -236,6 +237,110 @@ Resources:
             Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BattleArenaWebSocketApi}/*
     Metadata:
       SamResourceId: WebSocketSendMessageFunction
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId:
+        Ref: BattleArenaWebSocketApi
+      RouteKey: $connect
+      AuthorizationType: NONE
+      Target:
+        Fn::Join:
+        - /
+        - - integrations
+          - Ref: ConnectIntegration
+  ConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId:
+        Ref: BattleArenaWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketConnectFunction.Arn}/invocations
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId:
+        Ref: BattleArenaWebSocketApi
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      Target:
+        Fn::Join:
+        - /
+        - - integrations
+          - Ref: DisconnectIntegration
+  DisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId:
+        Ref: BattleArenaWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketDisconnectFunction.Arn}/invocations
+  SendMessageRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId:
+        Ref: BattleArenaWebSocketApi
+      RouteKey: sendMessage
+      AuthorizationType: NONE
+      Target:
+        Fn::Join:
+        - /
+        - - integrations
+          - Ref: SendMessageIntegration
+  SendMessageIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId:
+        Ref: BattleArenaWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketSendMessageFunction.Arn}/invocations
+  WebSocketDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+    - ConnectRoute
+    - DisconnectRoute
+    - SendMessageRoute
+    Properties:
+      ApiId:
+        Ref: BattleArenaWebSocketApi
+  WebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId:
+        Ref: BattleArenaWebSocketApi
+      DeploymentId:
+        Ref: WebSocketDeployment
+      StageName: Prod
+  ConnectPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: WebSocketConnectFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BattleArenaWebSocketApi}/*/*
+  DisconnectPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: WebSocketDisconnectFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BattleArenaWebSocketApi}/*/*
+  SendMessagePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: WebSocketSendMessageFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BattleArenaWebSocketApi}/*/*
 Outputs:
   ApiEndpoint:
     Description: API Gateway HTTP endpoint URL

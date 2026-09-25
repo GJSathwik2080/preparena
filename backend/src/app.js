@@ -178,18 +178,45 @@ exports.getProfileStatsHandler = async (event) => {
 exports.evaluateSpeechHandler = async (event) => {
     try {
         const body = JSON.parse(event.body);
-        const { text } = body;
+        const { audioBase64, scenario, text, mimeType } = body;
         
-        if (!text) {
-             return { statusCode: 400, body: JSON.stringify({ error: "Missing speech text" }) };
+        if (!audioBase64 && !text) {
+             return { statusCode: 400, body: JSON.stringify({ error: "Missing audio or text" }) };
         }
 
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const prompt = \`You are an elite speech evaluator. Evaluate the following spoken text for Pronunciation (clarity), Fluency (flow), and Vocabulary (professionalism). Output strictly a JSON object with 'pronunciation', 'fluency', 'vocabulary', 'overall' (all out of 100), and a short 'feedback' string. Text: "\${text}"\`;
         
+        const prompt = `You are an elite corporate speech and communication evaluator.
+The user was asked to read the following target corporate scenario:
+"${scenario || "None provided"}"
+
+Listen to the audio recording. Transcribe what the candidate spoke word-for-word, and evaluate their speech for Pronunciation (clarity), Fluency (pace and rhythm), and Vocabulary (professional tone).
+Output strictly a JSON object with:
+- "transcript": Exact word-for-word transcription of what was spoken in the audio.
+- "pronunciation": Number from 0 to 100.
+- "fluency": Number from 0 to 100.
+- "vocabulary": Number from 0 to 100.
+- "overall": Number from 0 to 100.
+- "feedback": Concise summary analysis of their spoken delivery.
+- "improvements": An array of 2 to 4 specific, actionable tips (strings) for how the user can improve their verbal delivery and score.`;
+
+        let contents = prompt;
+        if (audioBase64) {
+            const cleanMime = (mimeType && mimeType.split(';')[0]) || "audio/webm";
+            contents = [
+                {
+                    inlineData: {
+                        mimeType: cleanMime,
+                        data: audioBase64
+                    }
+                },
+                prompt
+            ];
+        }
+
         const response = await ai.models.generateContent({
-            model: 'gemini-3.5-flash-lite',
-            contents: prompt,
+            model: 'gemini-3.5-flash',
+            contents: contents,
             config: {
                 responseMimeType: "application/json"
             }
@@ -197,15 +224,23 @@ exports.evaluateSpeechHandler = async (event) => {
 
         return {
             statusCode: 200,
-            headers: { "Access-Control-Allow-Origin": "*" },
+            headers: { 
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                "Access-Control-Allow-Methods": "OPTIONS,POST,GET"
+            },
             body: response.text
         };
     } catch (err) {
-        console.error(err);
+        console.error("evaluateSpeechHandler error:", err);
         return {
             statusCode: 500,
-            headers: { "Access-Control-Allow-Origin": "*" },
-            body: JSON.stringify({ error: "Internal Server Error" })
+            headers: { 
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                "Access-Control-Allow-Methods": "OPTIONS,POST,GET"
+            },
+            body: JSON.stringify({ error: err.message || "Internal Server Error" })
         };
     }
 };
