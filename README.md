@@ -1,4 +1,4 @@
-# ⚔️ AccenPrep | Elite Serverless OA Simulator
+# ⚔️ PREPARENA | Elite Serverless OA Simulator
 
 AccenPrep is a high-performance, serverless Online Assessment (OA) platform designed to simulate enterprise-grade placement exams (like Aon/HirePro used by Accenture). Built for final-year Computer Science students, it features a premium SaaS-tier UI, strictly syllabus-aligned mock tests, competitive multiplayer arenas, and deep AI-powered analytics.
 
